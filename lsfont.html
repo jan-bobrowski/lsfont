@@ -1,0 +1,362 @@
+<!doctype html><meta charset=utf-8><title>List glyphs in font — online app</title>
+<!-- lsfont.html by Jan Bobrowski 2009-2021 -->
+<meta name=author content='Jan Bobrowski'>
+<meta name=description content="List TrueType, OpenType or WOFF font. Append font URL after '#' or open font from local file.">
+<link rel=license href=http://creativecommons.org/licenses/by-sa/3.0>
+<meta name=viewport content="width=745">
+<style>
+html {height:100%}
+body {position:relative; min-height:100%; margin:0; background:#F5F5F5; color:#111; font:13px sans-serif}
+main {padding:1%}
+main>* {max-width:620px; margin:1em auto}
+footer {position:absolute; overflow:hidden; bottom:0; left:0; right:0; height:15px; padding:0 16px; font-size:9px; text-align:right; color:#777}
+h1 {font:20px sans-serif; text-align:center}
+a {text-decoration:none; color:inherit}
+a[href]:hover {text-decoration:underline}
+#in {height:7px; min-height:7px; max-height:7px; padding:1px; position:relative; background:#3B2F27; color:#FFC28E; border-bottom:1px solid #FFF}
+#in>div {width:640px; margin:2em auto}
+input {font:inherit; padding:2px 6px; margin:0; border:1px solid #6D573D; background:none; color:inherit; outline-color:#FFC28E; max-width:100%; box-sizing:border-box}
+#x, body.ni #in {cursor:pointer}
+body:not(.ni) #in {height:auto; min-height:222px; max-height:250px}
+body.ni #in>:not(#x) {display:none}
+#x {position:absolute; bottom:-9px; right:0; font:16px/8px sans-serif; padding:0 16px 0 0; color:#3B2F27; text-shadow:#FFF 1px 1px}
+body.in #x:before{content:'\25B4\25B4\25B4'}
+body.ni #x:before{content:'\25BE\25BE\25BE'}
+#t {table-layout:fixed; border-collapse:collapse; max-width:none; font-size:16px; cursor:default}
+tr.b {border-bottom:1px solid #888}
+td {border:.9px solid #888; color:#444; width:40px; height:40px; max-width:64px; text-align:center; vertical-align:middle}
+td.c {background:#FFF; font:30px thefont,monospace; box-shadow:0 0 1px rgba(0,0,0,0)}
+td.c:hover {position:relative; transform:scale(2); color:#000; box-shadow:0 7px 15px rgba(0,0,0,0.35); transition:all 0s 150ms}
+th {font:10px sans-serif; padding:8px}
+dl {line-height:1.1em}
+dt {display:compact; font-size:90%; color:#444; padding-right:1ex}
+dd {margin:0 0 3px 9em; white-space:pre-wrap}
+.err {color:#E00; text-align:center}
+
+@media print {
+ body {background:none;padding:0;border:0;min-height:0}
+ body,dt,footer {color:#000}
+ tbody {border-top:1px solid #000}
+ td {border:.5px solid #000;color:#000}
+ th {padding-left:0}
+ #in {display:none!important}
+ footer {position:static}
+}
+</style>
+<style></style>
+<body>
+<script src=inflate.m.js></script>
+<script src=font-info.m.js></script>
+<script>
+! ((document, undefined) => {
+
+	const get = s => document.querySelector(s)
+	const element = n => document.createElement(n)
+	const insert = (p,e,b) => (p.insertBefore(e, b), p)
+
+	var body, main
+
+	function show(y) {
+		if (!(y >= 0))
+			y = body.className != 'in'
+		body.className =  y ? 'in' : 'ni'
+		if (y) scrollTo(0,0)
+	}
+
+	onpopstate = state_change
+
+	function state_change(z) {
+		var state = z.state
+		if (state)
+			return new_font(state)
+		var h = location.hash.substr(1)
+		if (h)
+			changed({url: h})
+	}
+
+	function changed(state, push) {
+		new_font(state)
+		var u = location.href.replace(/#.*/, '')
+		if (state.url)
+			u += '#' + state.url
+		if (push)
+			history.pushState(state, document.title, u)
+		else
+			history.replaceState(state, document.title, u)
+	}
+
+	onload = () => {
+		body = get('body')
+		main = get('main')
+
+		get('form').onsubmit = function(z) { // uses this
+			z.preventDefault()
+			var u = this[0].value
+			if (u)
+				changed({url: u}, 1)
+		}
+
+		get('#file').onchange = function() { // uses this
+			var f = this.files
+			if (f && (f = f[0])) {
+				this.value = ''
+				changed({file: f}, 1)
+			}
+		}
+
+		setTimeout(() => {
+			get('#in').style.transition = 'all .1s'
+		}, 0)
+
+		state_change({})
+	}
+
+	onclick = z => {
+		var e = z.target
+		var id = e.id || e.parentNode.id
+		if (id == 'open')
+			open()
+		else if (id == 'x')
+			show()
+		else if (body.className && id != 'file' && document.getSelection().type != 'Range') {
+			do {
+				var y = e.id == 'in'
+			} while (!y && (e = e.parentNode))
+			show(y)
+		}
+	}
+
+	onkeydown = z => {
+		if (z.keyCode == 0x4F && z.ctrlKey) {
+			z.preventDefault()
+			open()
+		}
+		if (z.keyCode == 27)
+			show()
+	}
+
+	function open() {
+		get('#file').click()
+	}
+
+	ondragenter = ondragover = ondrop = z => {
+		var t = z.type
+		var dt, v
+		if (t == 'drop') {
+			dt = z.dataTransfer
+			if (v = dt.files[0])
+				new_font({file: v})
+			else if (v = dt.getData('URL'))
+				location.hash = v
+		}
+		return !1
+	}
+
+	function new_font(o) {
+		show(0)
+
+		var out = main
+		out.innerHTML = '<div>'
+		out = out.firstChild
+		out.textContent = 'Loading' + (o.url ? ' ' + o.url : '') + '...'
+		out.innerHTML += '<div id=pb style=font-size:16px>'
+
+		req(o, (o,b,t) => {
+			if (!b)
+				return error(t)
+
+			try {
+				var file = new Uint8Array(b)
+				var font = font_info(file)
+			} catch (x) {
+				out.innerHTML = ''
+				return error(x)
+			}
+
+			out = main
+			if (document.fonts)
+				document.fonts.onloadingerror = () => {
+					error("Can't render", get('main h1').nextSibling)
+				}
+
+			var css = document.styleSheets[1]
+			var r = css.cssRules[0]
+			var u = o.url
+			if (!u)
+				u = URL.createObjectURL(o.file)
+			if (r)
+				css.deleteRule(r)
+			css.insertRule(`@font-face {font-family:thefont;src:url("${u}")}`, css.cssRules.length)
+
+			list_font(font, file)
+		})
+
+		function error(t, before) {
+			var e
+			e = element('p')
+			e.className = 'err'
+			e.textContent = t
+			insert(out, e, before)
+			e = get('#pb')
+			if (e) e.remove()
+		}
+	}
+
+	function list_font(f, file) {
+		main.innerHTML = '<h1></h1><table id=t></table><dl compact></dl><p>'
+		var [title, table, names, summ] = main.children
+		title.textContent = document.title = f.name || 'No Name'
+
+		var tbody = element('tbody')
+		var row
+		var n = 0
+		for (var range of f.ranges) {
+			var [start, len] = range
+			var end = start + len
+
+			while (n < start) {
+				if ((n & 15) == 0) {
+					var nx = start & ~15
+					if (n != nx && row)
+						row.className = 'b'
+					n = nx
+					if (n == start)
+						break
+					tr(n)
+				}
+				td()
+				n++
+			}
+			do {
+				if ((n & 15) == 0)
+					tr(n)
+				td(n)
+			} while (++n < end)
+		}
+		while (n++ & 15)
+			td()
+		insert(table, tbody)
+
+		function tr(u) {
+			row = element('tr')
+			insert(tbody, row)
+			var s = u.toString(16).toUpperCase()
+			s = u > 0xFFF ? s : '0'.repeat(4 - s.length) + s
+			row.innerHTML = `<th>${s}`
+		}
+
+		function td(u) {
+			var e = element('td')
+			if (u != undefined) {
+				e.className = 'c'
+				var s = ''
+				if (u > 0xFFFF) {
+					u -= 0x10000
+					s = String.fromCharCode(u>>10 | 0xD800)
+					u = u&0x3FF | 0xDC00
+				}
+				e.textContent = s + String.fromCharCode(u)
+			}
+			insert(row, e)
+		}
+
+		var ns = ["Copyright", "Family", "Subfamily", "Id", "Full Name",
+		 "Version", "PostScript Name", "Trademark", "Manufacturer", "Designer",
+		 "Description", "Manufacturer URL", "Designer URL", "License",
+		 "License URL",,,,, "Sample Text",,,,,, "Variations PostScript Name Prefix"]
+
+		var s = f.strings
+		for (var n in s) {
+			var dt = element('dt')
+			var e = element('dd')
+			var dd = e
+			var nm = n in ns ? ns[n] : '#'+n
+			dt.textContent = nm
+			dt.title = n
+			var v = s[n]
+			if (/URL/.test(nm)) {
+				e = element('a')
+				e.href = (
+				 v.match(/^[^:/]+@/) ? 'mailto:' :
+				 v.match(/^[a-z0-9]+:/i) ? '' : 'http://'
+				) + v
+				insert(dd, e)
+			}
+			e.textContent = v
+			if (+n == 19)
+				dd.style.fontFamily = 'thefont'
+			insert(insert(names, dt), dd)
+		}
+
+		var [dc,dm] = [f.created, f.modified].map(t => t && t.toISOString().substr(0,10))
+		var s = f.type
+		v = dm && dm != dc
+		n = f.num_glyphs
+		s += `, ${n} glyph` + (n-1 ? 's' : '')
+		 + `, ${file.length} bytes`
+		 + (dc ? `, created <time>${dc}</time>` : '')
+		 + (dm ? `, modified <time>${dm}</time>` : '')
+		summ.innerHTML = s
+	}
+
+	function req(g,a) {
+		if (g.file) {
+			r = new FileReader
+			r.onload = () => {
+				a(g, r.result)
+			}
+			return r.readAsArrayBuffer(g.file)
+		}
+
+		var r = new XMLHttpRequest
+		r.open('GET', g.url)
+		r.setRequestHeader('Accept', 'font/*,*/*')
+		r.responseType = 'arraybuffer'
+		r.send()
+		r.onload = () => {
+			var s = r.status
+			if(s && s!=200)
+				r.onerror()
+			else
+				a(g, r.response)
+		}
+		r.onerror = () => {
+			var v
+			a(g, v, r.statusText||'Error (CORS?)')
+		}
+		var pb = get('#pb')
+		if (pb) !(r.onprogress = z => {
+			var s, t, n
+			var c0 = '\u25CB'
+			var c1 = '\u25CF'
+			if (!z)
+				s = c0.repeat(10)
+			else {
+				t = z.total
+				n = z.loaded
+				if (t) {
+					n = 10*(t - n)/t | 0
+					s = c1.repeat(10 - n) + c0.repeat(n)
+				} else {
+					n %= 10
+					s = c0.repeat(n) + c1 + c0.repeat(9 - n)
+				}
+			}
+			pb.innerHTML = s
+		}) ()
+	}
+
+	/* !INCLUDE */
+}) (document)
+</script>
+<div id=in><div>
+<h1>List glyphs in font</h1>
+<p>Program lists character map of a given font. Accepts TrueType, OpenType and WOFF fonts.
+<p><form><input type=url id=url size=88 accesskey=u placeholder='URL of the font file'></form>
+<p><button id=open accesskey=o><b>Open local font...</b> Ctrl-O</button> or drop here
+</div>
+<a id=x></a>
+</div>
+<main></main>
+<footer><a href=//torinak.com/font/lsfont.html>lsfont.html</a> • <a href=//torinak.com/~jb/ rel=author>Jan Bobrowski</a></footer>
+<input id=file type=file accept='.ttf,.otf,.woff' hidden>
