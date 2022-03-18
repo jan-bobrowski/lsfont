@@ -110,9 +110,9 @@ function font_info(body) {
 	for (var pos = 4; pos < end; pos += 8) {
 		var pe = g32(tab, pos)
 		if (pe == 0x00030001 || pe == 0x0003000a) {
-			var ofs = g32(tab, pos + 4)
-			var format = g16(tab, ofs)
-			cmap_ofs[format] = ofs
+			var offset = g32(tab, pos + 4)
+			var format = g16(tab, offset)
+			cmap_ofs[format] = offset
 		}
 	}
 
@@ -154,8 +154,8 @@ function font_info(body) {
 			} else {
 				var id_base = pos + o_ofs + ofs - 2*first
 				for (var i = first; i <= last; i++) {
-					var v = g16(tab, id_base + 2*i) + delta & 0xffff
-					if (!v) {
+					var v = g16(tab, id_base + 2*i)
+					if (!v || !(v + delta & 0xFFFF)) {
 						add_range(first, i - 1)
 						first = i + 1
 					}
