@@ -202,15 +202,15 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 		}
 	}
 
-	function list_font(f, file) {
+	function list_font(font, file) {
 		main.innerHTML = '<h1></h1><table id=t></table><dl compact></dl><p>'
 		var [title, table, names, summ] = main.children
-		title.textContent = document.title = f.name || 'No Name'
+		title.textContent = document.title = font.name || 'No Name'
 
 		var tbody = element('tbody')
 		var row
 		var n = 0
-		for (var range of f.ranges) {
+		if (font.ranges) for (var range of font.ranges) {
 			var [start, len] = range
 			var end = start + len
 
@@ -265,12 +265,12 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 		 "Description", "Manufacturer URL", "Designer URL", "License",
 		 "License URL",,,,, "Sample Text",,,,,, "Variations PostScript Name Prefix"]
 
-		var s = f.strings
+		var s = font.strings
 		for (var n in s) {
 			var dt = element('dt')
 			var e = element('dd')
 			var dd = e
-			var nm = n in ns ? ns[n] : '#'+n
+			var nm = n in ns ? ns[n] : '#' + n
 			dt.textContent = nm
 			dt.title = n
 			var v = s[n]
@@ -288,11 +288,11 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 			insert(insert(names, dt), dd)
 		}
 
-		var [dc,dm] = [f.created, f.modified].map(t => t && t.toISOString().substr(0,10))
-		var s = f.type
+		var [dc,dm] = [font.created, font.modified].map(t => t && t.toISOString().substr(0,10))
+		var s = font.type
 		v = dm && dm != dc
-		n = f.num_glyphs
-		s += `, ${n} glyph` + (n-1 ? 's' : '')
+		n = font.num_glyphs
+		s += `, ${n} glyph` + (n - 1 ? 's' : '')
 		 + `, ${file.length} bytes`
 		 + (dc ? `, created <time>${dc}</time>` : '')
 		 + (dm ? `, modified <time>${dm}</time>` : '')

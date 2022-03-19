@@ -116,10 +116,7 @@ function font_info(body) {
 		}
 	}
 
-	if (!cmap_ofs[4] && !cmap_ofs[12])
-		throw "Can't read char map"
-
-	var ranges = []
+	var ranges
 
 	const add_range = (first, last) => {
 		var len = last - first + 1
@@ -134,6 +131,7 @@ function font_info(body) {
 
 	var pos = cmap_ofs[4]
 	if (pos) {
+		ranges = []
 		var v = g16(tab, pos + 6)
 		var count = v >> 1
 		var o_start = 2 + v
@@ -142,31 +140,30 @@ function font_info(body) {
 		pos += 14
 		for (; count--; pos += 2) {
 			var [last, first, delta, ofs] = [g16(tab, pos), g16(tab, pos + o_start), g16(tab, pos + o_delta), g16(tab, pos + o_ofs)]
-
 			if (!ofs) {
 				var i = -delta & 0xFFFF
-				if (i < first || i > last)
-					add_range(first, last)
-				else {
+				if (i >= first && i <= last) {
 					add_range(first, i - 1)
-					add_range(i + 1, last)
+					first = i + 1
 				}
 			} else {
-				var id_base = pos + o_ofs + ofs - 2*first
+				var array_pos = pos + o_ofs + ofs
 				for (var i = first; i <= last; i++) {
-					var v = g16(tab, id_base + 2*i)
+					var v = g16(tab, array_pos)
 					if (!v || !(v + delta & 0xFFFF)) {
 						add_range(first, i - 1)
 						first = i + 1
 					}
+					array_pos += 2
 				}
-				add_range(first, last)
 			}
+			add_range(first, last)
 		}
 	}
 
 	var pos = cmap_ofs[12]
 	if (pos) {
+		ranges = ranges || []
 		var count = g32(tab, pos + 12)
 		pos += 16
 		for (; count--; pos += 12) {
