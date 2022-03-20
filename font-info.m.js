@@ -6,12 +6,12 @@ if (typeof exports == 'object') {
 }
 
 function font_info(body) {
-	const g16 = (b,o) => b[o]<<8 | b[o+1]
-	const g32 = (b,o) => (g16(b,o)<<16 | g16(b,o+2)) >>> 0
-	const g64 = (b,o) => 65536*65536*g32(b,o) + g32(b,o+4)
-	const gstr = (b,o,n) => String.fromCharCode.apply(String, b.subarray(o, o+n))
+	const g16 = (b,o) => b[o]<<8 | b[o + 1]
+	const g32 = (b,o) => (g16(b, o)<<16 | g16(b, o + 2)) >>> 0
+	const g64 = (b,o) => 65536*65536*g32(b, o) + g32(b, o + 4)
+	const gstr = (b,o,n) => String.fromCharCode.apply(String, b.subarray(o, o + n))
 
-	var tables = {head:0, maxp:0, cmap:0, name:0}
+	var tables = {head:0, maxp:0, cmap:0, name:0, GPOS:false, GSUB:false}
 
 	var dir = []
 	var v = gstr(body, 0, 4)
@@ -57,7 +57,7 @@ function font_info(body) {
 	} while (--count)
 
 	for (var v in tables)
-		if (!tables[v])
+		if (tables[v] == 0)
 			throw `No "${v}" table`
 
 	var tab = tables.name
@@ -175,6 +175,40 @@ function font_info(body) {
 	}
 
 	font.ranges = ranges
+
+	var features
+
+	const parse_feature_list = (tab, pos) => {
+		features = features || {}
+		var featureCount = g16(tab, pos)
+		pos += 2
+		for (var i = 0; i < featureCount; i++) {
+			var featureTag = gstr(tab, pos, 4)
+			features[featureTag] = 1
+			pos += 6
+		}
+	}
+
+	var tab = tables.GPOS
+	if (tab) {
+		if (g16(tab, 0) == 0x0001) {
+			var featureListOffset = g16(tab, 6)
+			if (featureListOffset)
+				parse_feature_list(tab, featureListOffset)
+		}
+	}
+
+	var tab = tables.GSUB
+	if (tab) {
+		if (g16(tab, 0) == 0x0001) {
+			var featureListOffset = g16(tab, 6)
+			if (featureListOffset)
+				parse_feature_list(tab, featureListOffset)
+		}
+	}
+
+	if (features)
+		font.features = Object.keys(features)
 
 	return font
 }

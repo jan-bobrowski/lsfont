@@ -4,27 +4,18 @@ on:
     branches:
       - main
 jobs:
-  test:
+  release:
+    name: Create release HTML.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/checkout@v2
-        with:
-         ref: 'releases'
-         path: 'release'
       - uses: actions/setup-node@v2
       - run: npm install clean-css uglify-js
-      - run: make
+      - run: make && mv release/lsfont.html .
       - uses: EndBug/add-and-commit@v7
         with:
+          message: 'Release'
           branch: 'releases'
-          cwd: 'release'
           add: 'lsfont.html'
-      - name: config
-        run: |
-          git config user.name "GitHub Actions Bot"
-          git config user.email "<>"
-      - name: commit
-        run: |
-          git commit -a -m "$(date +%Y-%m-%d)"
-          git push origin releases
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

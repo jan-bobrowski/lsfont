@@ -2,7 +2,6 @@
 <!-- lsfont.html by Jan Bobrowski 2009-2021 -->
 <meta name=author content='Jan Bobrowski'>
 <meta name=description content="List TrueType, OpenType or WOFF font. Append font URL after '#' or open font from local file.">
-<link rel=license href=http://creativecommons.org/licenses/by-sa/3.0>
 <meta name=viewport content="width=745">
 <style>
 html {height:100%}
@@ -174,8 +173,9 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 			}
 
 			out = main
+
 			if (document.fonts)
-				document.fonts.onloadingerror = () => {
+				document.fonts.onloadingerror = z => {
 					error("Can't render", get('main h1').nextSibling)
 				}
 
@@ -203,14 +203,16 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 	}
 
 	function list_font(font, file) {
+		var {name, ranges, strings, features, created, modified} = font
+
 		main.innerHTML = '<h1></h1><table id=t></table><dl compact></dl><p>'
 		var [title, table, names, summ] = main.children
-		title.textContent = document.title = font.name || 'No Name'
+		title.textContent = document.title = name || 'No Name'
 
 		var tbody = element('tbody')
 		var row
 		var n = 0
-		if (font.ranges) for (var range of font.ranges) {
+		if (ranges) for (var range of ranges) {
 			var [start, len] = range
 			var end = start + len
 
@@ -265,15 +267,14 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 		 "Description", "Manufacturer URL", "Designer URL", "License",
 		 "License URL",,,,, "Sample Text",,,,,, "Variations PostScript Name Prefix"]
 
-		var s = font.strings
-		for (var n in s) {
+		for (var n in strings) {
 			var dt = element('dt')
 			var e = element('dd')
 			var dd = e
 			var nm = n in ns ? ns[n] : '#' + n
 			dt.textContent = nm
 			dt.title = n
-			var v = s[n]
+			var v = strings[n]
 			if (/URL/.test(nm)) {
 				e = element('a')
 				e.href = (
@@ -288,7 +289,13 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 			insert(insert(names, dt), dd)
 		}
 
-		var [dc,dm] = [font.created, font.modified].map(t => t && t.toISOString().substr(0,10))
+		if (features && features[0]) {
+			var e = element('p')
+			e.textContent = 'Features: ' + features.join(' ')
+			insert(main, e, summ)
+		}
+
+		var [dc,dm] = [created, modified].map(t => t && t.toISOString().substr(0,10))
 		var s = font.type
 		v = dm && dm != dc
 		n = font.num_glyphs
