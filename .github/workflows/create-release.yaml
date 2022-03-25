@@ -1,0 +1,31 @@
+name: "Release"
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  release:
+    name: "Release"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+      - run: npm install clean-css uglify-js
+
+      - name: "Assemble HTML"
+        run: |
+          make
+
+      - name: "Remove previous release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git tag -d latest 2>/dev/null || true
+          gh release delete latest -y 2>/dev/null || true
+
+      - name: "Create new release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create -n '' -t "$(date +%Y-%m-%d)" latest release/lsfont.html

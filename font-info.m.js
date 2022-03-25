@@ -57,7 +57,7 @@ function font_info(body) {
 	} while (--count)
 
 	for (var v in tables)
-		if (tables[v] == 0)
+		if (tables[v] === 0)
 			throw `No "${v}" table`
 
 	var tab = tables.name
