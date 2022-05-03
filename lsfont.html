@@ -1,34 +1,34 @@
 <!doctype html><meta charset=utf-8><title>List glyphs in font — online app</title>
-<!-- lsfont.html by Jan Bobrowski 2009-2022 -->
 <meta name=author content='Jan Bobrowski'>
-<meta name=description content="List TrueType, OpenType or WOFF font. Append font URL after '#' or open font from local file.">
-<meta name=viewport content="width=745">
+<meta name=description content="List TrueType, OpenType or WOFF font. Append font URL after '#' or open font from a local file.">
+<meta name=viewport content="width=746">
 <style>
 html {height:100%}
-body {position:relative; min-height:100%; margin:0; background:#F5F5F5; color:#111; font:13px sans-serif}
+body {position:relative; min-height:100%; margin:0; background:#F5F5F5; color:#111; font-family:sans-serif}
 main {padding:1%}
 main>* {max-width:620px; margin:1em auto}
 footer {position:absolute; overflow:hidden; bottom:0; left:0; right:0; height:15px; padding:0 16px; font-size:9px; text-align:right; color:#777}
-h1 {font:20px sans-serif; text-align:center}
+h1, h2 {font-size:1.5em; font-weight:600; text-align:center}
 a {text-decoration:none; color:inherit}
 a[href]:hover {text-decoration:underline}
-#in {height:7px; min-height:7px; max-height:7px; padding:1px; position:relative; background:#3B2F27; color:#FFC28E; border-bottom:1px solid #FFF}
+#in {height:7px; min-height:7px; max-height:7px; padding:1px; position:relative; background:#131619; color:#39e; border-bottom:1px solid #FFF}
 #in>div {width:640px; margin:2em auto}
-input {font:inherit; padding:2px 6px; margin:0; border:1px solid #6D573D; background:none; color:inherit; outline-color:#FFC28E; max-width:100%; box-sizing:border-box}
+input {font:inherit; padding:2px 6px; margin:0; border:.9px solid currentcolor; background:none;
+ color:inherit; outline-color:currentcolor; max-width:100%; box-sizing:border-box}
 #x, body.ni #in {cursor:pointer}
-body:not(.ni) #in {height:auto; min-height:222px; max-height:250px}
+body:not(.ni) #in {height:auto; max-height:90%}
 body.ni #in>:not(#x) {display:none}
 #x {position:absolute; bottom:-9px; right:0; font:16px/8px sans-serif; padding:0 16px 0 0; color:#3B2F27; text-shadow:#FFF 1px 1px}
 body.in #x:before{content:'\25B4\25B4\25B4'}
 body.ni #x:before{content:'\25BE\25BE\25BE'}
 #t {table-layout:fixed; border-collapse:collapse; max-width:none; font-size:16px; cursor:default}
 tr.b {border-bottom:1px solid #888}
-td {border:.9px solid #888; color:#444; width:40px; height:40px; max-width:64px; text-align:center; vertical-align:middle}
+td {border:.9px solid #888; width:40px; height:40px; max-width:64px; text-align:center; vertical-align:middle}
 td.c {background:#FFF; font:30px thefont,monospace; box-shadow:0 0 1px rgba(0,0,0,0)}
-td.c:hover {position:relative; transform:scale(2); color:#000; box-shadow:0 7px 15px rgba(0,0,0,0.35); transition:all 0s 150ms}
+td.c:hover {position:relative; transform:scale(2); color:#000; box-shadow:0 7px 15px rgba(0,0,0,0.35); transition:all 40ms 40ms}
 th {font:10px sans-serif; padding:8px}
-dl {line-height:1.1em}
-dt {display:compact; font-size:90%; color:#444; padding-right:1ex}
+dl {line-height:1.1em; font-size:90%}
+dt {display:compact; color:#444; padding-right:1ex}
 dd {margin:0 0 3px 9em; white-space:pre-wrap}
 .err {color:#E00; text-align:center}
 
@@ -54,6 +54,7 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 	const insert = (p,e,b) => (p.insertBefore(e, b), p)
 
 	var body, main
+	var title = document.title
 
 	function show(y) {
 		if (!(y >= 0))
@@ -66,6 +67,7 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 
 	function state_change(z) {
 		var state = z.state
+		document.title = title
 		if (state)
 			return new_font(state)
 		var h = location.hash.substr(1)
@@ -74,6 +76,7 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 	}
 
 	function changed(state, push) {
+		document.title = title
 		new_font(state)
 		var u = location.href.replace(/#.*/, '')
 		if (state.url)
@@ -176,7 +179,7 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 
 			if (document.fonts)
 				document.fonts.onloadingerror = z => {
-					error("Can't render", get('main h1').nextSibling)
+					error("Can't render", get('main h2').nextSibling)
 				}
 
 			var css = document.styleSheets[1]
@@ -205,7 +208,7 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 	function list_font(font, file) {
 		var {name, ranges, strings, features, created, modified} = font
 
-		main.innerHTML = '<h1></h1><table id=t></table><dl compact></dl><p>'
+		main.innerHTML = '<h2></h2><table id=t></table><dl compact></dl><p>'
 		var [title, table, names, summ] = main.children
 		title.textContent = document.title = name || 'No Name'
 
@@ -358,8 +361,8 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 </script>
 <div id=in><div>
 <h1>List glyphs in font</h1>
-<p>Program lists character map of a given font. Accepts TrueType, OpenType and WOFF fonts.
-<p><form><input type=url id=url size=88 accesskey=u placeholder='URL of the font file'></form>
+<p>List character map of a font. Accepts TrueType, OpenType and WOFF fonts.
+<form><input type=url id=url size=88 accesskey=u placeholder='URL of the font file'></form>
 <p><button id=open accesskey=o><b>Open local font...</b> Ctrl-O</button> or drop here
 </div>
 <a id=x></a>

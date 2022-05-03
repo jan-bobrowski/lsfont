@@ -26,7 +26,7 @@ html = html.replace(/<style>([\S\s]*?)<\/style>/g, (m0,s) => {
 })
 
 scripts = []
-html = html.replace(/<script src=(\S+)><\/script>\n?/g, (m0,src) => {
+html = html.replace(/<script src=([^>]+)><\/script>\n?/g, (m0,src) => {
 	scripts.push(src)
 	return ''
 })
