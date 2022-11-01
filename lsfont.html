@@ -60,7 +60,8 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 		if (!(y >= 0))
 			y = body.className != 'in'
 		body.className =  y ? 'in' : 'ni'
-		if (y) scrollTo(0,0)
+		if (y)
+			scrollTo(0, 0)
 	}
 
 	onpopstate = state_change
@@ -72,7 +73,7 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 			return new_font(state)
 		var h = location.hash.substr(1)
 		if (h)
-			changed({url: h})
+			changed({ url: h })
 	}
 
 	function changed(state, push) {
@@ -95,14 +96,14 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 			z.preventDefault()
 			var u = this[0].value
 			if (u)
-				changed({url: u}, 1)
+				changed({ url: u }, 1)
 		}
 
 		get('#file').onchange = function() { // uses this
 			var f = this.files
 			if (f && (f = f[0])) {
 				this.value = ''
-				changed({file: f}, 1)
+				changed({ file: f }, 1)
 			}
 		}
 
@@ -147,7 +148,7 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 		if (t == 'drop') {
 			dt = z.dataTransfer
 			if (v = dt.files[0])
-				new_font({file: v})
+				new_font({ file: v })
 			else if (v = dt.getData('URL'))
 				location.hash = v
 		}
@@ -169,7 +170,16 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 
 			try {
 				var file = new Uint8Array(b)
-				var font = font_info(file)
+				var font = font_info(file, {
+					head: true,
+					maxp: true,
+					cmap: true,
+					name: true,
+					GPOS: false,
+					GSUB: false,
+					hhea: true,
+					'OS/2': false
+				})
 			} catch (x) {
 				out.innerHTML = ''
 				return error(x)
@@ -206,7 +216,7 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 	}
 
 	function list_font(font, file) {
-		var {name, ranges, strings, features, created, modified} = font
+		var { name, ranges, strings, features, created, modified } = font
 
 		main.innerHTML = '<h2></h2><table id=t></table><dl compact></dl><p>'
 		var [title, table, names, summ] = main.children

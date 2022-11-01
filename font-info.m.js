@@ -1,22 +1,30 @@
-/* Parse TTF & WOFF fonts © 2021 Jan Bobrowski */
+/* Parse TTF & WOFF fonts © 2021, 2022 Jan Bobrowski */
 
 if (typeof exports == 'object') {
 	exports.font_info = font_info
 	inflate = require('./inflate.m').inflate
 }
 
-function font_info(body) {
+/*
+ tables:
+  true: required
+  false: optional
+  missing: ignored
+ Replaced with actual table raw data.
+ eg. tables = { head: true, maxp: true, cmap: true, name: true, GPOS: false, GSUB: false }
+*/
+
+function font_info(body, tables) {
 	const g16 = (b,o) => b[o]<<8 | b[o + 1]
+	const g16s = (b,o) => (g16(b, o) ^ 32768) - 32768
 	const g32 = (b,o) => (g16(b, o)<<16 | g16(b, o + 2)) >>> 0
 	const g64 = (b,o) => 65536*65536*g32(b, o) + g32(b, o + 4)
 	const gstr = (b,o,n) => String.fromCharCode.apply(String, b.subarray(o, o + n))
 
-	var tables = {head:0, maxp:0, cmap:0, name:0, GPOS:false, GSUB:false}
-
 	var dir = []
 	var v = gstr(body, 0, 4)
 	var type
-	if (v=='\0\1\0\0' || v=='true' || v=='typ1' || v=='OTTO') {
+	if (v == '\0\1\0\0' || v == 'true' || v == 'typ1' || v == 'OTTO') {
 		dir = [4, 12,16, 8,12]
 		type = 'TTF'
 	} else if (v == 'wOFF') {
@@ -27,9 +35,9 @@ function font_info(body) {
 	else
 		throw 'Not a font'
 
-	var [count, pos, step, o_ofs, o_size, o_len] = dir
+	var [ count, pos, step, o_ofs, o_size, o_len ] = dir
 	count = g16(body, count)
-	if (count == 0)
+	if (!count)
 		throw 'Bad font'
 	do {
 		var id = gstr(body, pos, 4)
@@ -56,40 +64,46 @@ function font_info(body) {
 		pos += step
 	} while (--count)
 
-	for (var v in tables)
-		if (tables[v] === 0)
+	for (var v in tables) {
+		var tab = tables[v]
+		if (tab && !tab.length)
 			throw `No "${v}" table`
+	}
+
+	var font = { type }
 
 	var tab = tables.name
-	var strings = {}
-	for (var iter = 0; iter < 2; iter++) {
-		var end = 6 + 12*g16(tab, 2)
-		for (var pos = 6; pos < end; pos += 12) {
-			var [pe, lang, id] = [g32(tab, pos), g16(tab, pos + 4), g16(tab, pos + 6)]
+	if (tab) {
+		var strings = {}
+		for (var iter = 0; iter < 2; iter++) {
+			var end = 6 + 12*g16(tab, 2)
+			for (var pos = 6; pos < end; pos += 12) {
+				var [ pe, lang, id ] = [ g32(tab, pos), g16(tab, pos + 4), g16(tab, pos + 6) ]
 
-			// plat enc lang : priority
-			// 00030001 0409 : 3 (we prefer English)
-			// 00030001 *    : 2
-			// 00010000 *    : 1
+				// plat enc lang : priority
+				// 00030001 0409 : 3 (we prefer English)
+				// 00030001 *    : 2
+				// 00010000 *    : 1
 
-			var priority =
-			 pe == 0x00010000 ? 1 :
-			 pe == 0x00030001 ? (lang == 0x0409 ? 3 : 2) : 0
+				var priority =
+				 pe == 0x00010000 ? 1 :
+				 pe == 0x00030001 ? (lang == 0x0409 ? 3 : 2) : 0
 
-			if (iter == 0) {
-				if (priority > (strings[id] || 0))
-					strings[id] = priority
-			} else {
-				if (priority == strings[id]) {
-					var ofs = g16(tab, 4) + g16(tab, pos + 10)
-					var size = g16(tab, pos + 8)
-					strings[id] = new TextDecoder(pe == 0x00030001 ? 'utf-16be' : 'macintosh').decode(tab.slice(ofs, ofs + size))
+				if (iter == 0) {
+					if (priority > (strings[id] || 0))
+						strings[id] = priority
+				} else {
+					if (priority == strings[id]) {
+						var ofs = g16(tab, 4) + g16(tab, pos + 10)
+						var size = g16(tab, pos + 8)
+						strings[id] = new TextDecoder(pe == 0x00030001 ? 'utf-16be' : 'macintosh').decode(tab.slice(ofs, ofs + size))
+					}
 				}
 			}
 		}
+		font.name = strings[4]
+		font.strings = strings
 	}
-
-	var font = {type, name: strings[4], strings}
 
 	const read_date = (name, pos) => {
 		var d = g64(tab, pos)
@@ -98,6 +112,7 @@ function font_info(body) {
 	}
 
 	var tab = tables.head
+	font.em = g16(tab, 18)
 	read_date('created', 20)
 	read_date('modified', 28)
 
@@ -204,6 +219,28 @@ function font_info(body) {
 			var featureListOffset = g16(tab, 6)
 			if (featureListOffset)
 				parse_feature_list(tab, featureListOffset)
+		}
+	}
+
+	var tab = tables.hhea
+	if (tab) {
+		font.hhea = {
+			ascender: g16s(tab, 4),
+			descender: g16s(tab, 6),
+			lineGap: g16s(tab, 8)
+		}
+
+		var tab = tables['OS/2']
+		if (tab) {
+			font.os2 = {
+				usWeightClass: g16(tab, 4),
+				usWidthClass: g16(tab, 6),
+				sTypoAscender: g16s(tab, 0x0044),
+				sTypoDescender: g16s(tab, 0x0046),
+				sTypoLineGap: g16s(tab, 0x0048),
+				usWinAscent: g16(tab, 0x004a),
+				usWinDescent: g16s(tab, 0x004c)
+			}
 		}
 	}
 
