@@ -2,6 +2,7 @@
 <meta name=author content='Jan Bobrowski'>
 <meta name=description content="List TrueType, OpenType or WOFF font. Append font URL after '#' or open font from a local file.">
 <meta name=viewport content="width=746">
+<link rel=source href=https://github.com/jan-bobrowski/lsfont>
 <style>
 html {height:100%}
 body {position:relative; min-height:100%; margin:0; background:#F5F5F5; color:#111; font-family:sans-serif}
@@ -25,7 +26,7 @@ body.ni #x:before{content:'\25BE\25BE\25BE'}
 tr.b {border-bottom:1px solid #888}
 td {border:.9px solid #888; width:40px; height:40px; max-width:64px; text-align:center; vertical-align:middle}
 td.c {background:#FFF; font:30px thefont,monospace; box-shadow:0 0 1px rgba(0,0,0,0)}
-td.c:hover {position:relative; transform:scale(2); color:#000; box-shadow:0 7px 15px rgba(0,0,0,0.35); transition:all 40ms 40ms}
+td.c:hover {position:relative; transform:scale(2); color:#000; box-shadow:1px 7px 15px rgba(0,0,0,0.3); transition:all 40ms 40ms}
 th {font:10px sans-serif; padding:8px}
 dl {line-height:1.1em; font-size:90%}
 dt {display:compact; color:#444; padding-right:1ex}
@@ -51,10 +52,10 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 
 	const get = s => document.querySelector(s)
 	const element = n => document.createElement(n)
-	const insert = (p,e,b) => (p.insertBefore(e, b), p)
+	const insert = (p, e, b) => (p.insertBefore(e, b), p)
 
 	var body, main
-	var title = document.title
+	var { title } = document
 
 	function show(y) {
 		if (!(y >= 0))
@@ -71,9 +72,9 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 		document.title = title
 		if (state)
 			return new_font(state)
-		var h = location.hash.substr(1)
-		if (h)
-			changed({ url: h })
+		var url = location.hash.slice(1)
+		if (url)
+			changed({ url })
 	}
 
 	function changed(state, push) {
@@ -94,9 +95,9 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 
 		get('form').onsubmit = function(z) { // uses this
 			z.preventDefault()
-			var u = this[0].value
-			if (u)
-				changed({ url: u }, 1)
+			var url = this[0].value
+			if (url)
+				changed({ url }, 1)
 		}
 
 		get('#file').onchange = function() { // uses this
@@ -109,7 +110,7 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 
 		setTimeout(() => {
 			get('#in').style.transition = 'all .1s'
-		}, 0)
+		})
 
 		state_change({})
 	}
@@ -121,12 +122,8 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 			open()
 		else if (id == 'x')
 			show()
-		else if (body.className && id != 'file' && document.getSelection().type != 'Range') {
-			do {
-				var y = e.id == 'in'
-			} while (!y && (e = e.parentNode))
-			show(y)
-		}
+		else if (body.className && id != 'file' && document.getSelection().type != 'Range')
+			show(!!e.closest('#in'))
 	}
 
 	onkeydown = z => {
@@ -148,7 +145,7 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 		if (t == 'drop') {
 			dt = z.dataTransfer
 			if (v = dt.files[0])
-				new_font({ file: v })
+				new_font({ file: v }, 1)
 			else if (v = dt.getData('URL'))
 				location.hash = v
 		}
@@ -164,7 +161,7 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 		out.textContent = 'Loading' + (o.url ? ' ' + o.url : '') + '...'
 		out.innerHTML += '<div id=pb style=font-size:16px>'
 
-		req(o, (o,b,t) => {
+		req(o, (o, b, t) => {
 			if (!b)
 				return error(t)
 
@@ -205,13 +202,11 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 		})
 
 		function error(t, before) {
-			var e
-			e = element('p')
+			var e = element('p')
 			e.className = 'err'
 			e.textContent = t
 			insert(out, e, before)
-			e = get('#pb')
-			if (e) e.remove()
+			get('#pb')?.remove()
 		}
 	}
 
@@ -225,13 +220,13 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 		var tbody = element('tbody')
 		var row
 		var n = 0
-		if (ranges) for (var range of ranges) {
-			var [start, len] = range
-			var end = start + len
+		if (ranges) for (let range of ranges) {
+			let [start, len] = range
+			let end = start + len
 
 			while (n < start) {
 				if ((n & 15) == 0) {
-					var nx = start & ~15
+					let nx = start & ~15
 					if (n != nx && row)
 						row.className = 'b'
 					n = nx
@@ -264,11 +259,11 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 			var e = element('td')
 			if (u != undefined) {
 				e.className = 'c'
-				var s = ''
+				let s = ''
 				if (u > 0xFFFF) {
 					u -= 0x10000
 					s = String.fromCharCode(u>>10 | 0xD800)
-					u = u&0x3FF | 0xDC00
+					u = u & 0x3FF | 0xDC00
 				}
 				e.textContent = s + String.fromCharCode(u)
 			}
@@ -280,14 +275,14 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 		 "Description", "Manufacturer URL", "Designer URL", "License",
 		 "License URL",,,,, "Sample Text",,,,,, "Variations PostScript Name Prefix"]
 
-		for (var n in strings) {
-			var dt = element('dt')
-			var e = element('dd')
-			var dd = e
-			var nm = n in ns ? ns[n] : '#' + n
+		for (let n in strings) {
+			let dt = element('dt')
+			let e = element('dd')
+			let dd = e
+			let nm = n in ns ? ns[n] : '#' + n
 			dt.textContent = nm
 			dt.title = n
-			var v = strings[n]
+			let v = strings[n]
 			if (/URL/.test(nm)) {
 				e = element('a')
 				e.href = (
@@ -302,13 +297,13 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 			insert(insert(names, dt), dd)
 		}
 
-		if (features && features[0]) {
-			var e = element('p')
+		if (features?.[0]) {
+			let e = element('p')
 			e.textContent = 'Features: ' + features.join(' ')
 			insert(main, e, summ)
 		}
 
-		var [dc,dm] = [created, modified].map(t => t && t.toISOString().substr(0,10))
+		var [dc, dm] = [created, modified].map(t => t && t.toISOString().slice(0, 10))
 		var s = font.type
 		v = dm && dm != dc
 		n = font.num_glyphs
@@ -319,7 +314,7 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 		summ.innerHTML = s
 	}
 
-	function req(g,a) {
+	function req(g, a) {
 		if (g.file) {
 			r = new FileReader
 			r.onload = () => {
@@ -335,25 +330,25 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 		r.send()
 		r.onload = () => {
 			var s = r.status
-			if(s && s!=200)
+			if(s && s != 200)
 				r.onerror()
 			else
 				a(g, r.response)
 		}
 		r.onerror = () => {
 			var v
-			a(g, v, r.statusText||'Error (CORS?)')
+			a(g, v, r.statusText || 'Error (CORS?)')
 		}
 		var pb = get('#pb')
 		if (pb) !(r.onprogress = z => {
-			var s, t, n
 			var c0 = '\u25CB'
 			var c1 = '\u25CF'
+			var s
 			if (!z)
 				s = c0.repeat(10)
 			else {
-				t = z.total
-				n = z.loaded
+				let t = z.total
+				let n = z.loaded
 				if (t) {
 					n = 10*(t - n)/t | 0
 					s = c1.repeat(10 - n) + c0.repeat(n)

@@ -59,7 +59,7 @@ html = html.replace(/<script>([\S\s]*?)<\/script>/g, (m0,js) => {
 	if (ujs.error)
 		throw ujs.error
 
-	return `<script>\n${ujs.code.replace(/;$/,'')}\n</script>`
+	return `<script>\n${ujs.code.replace(/;$/, '')}\n</script>`
 })
 
 if (args[1])
