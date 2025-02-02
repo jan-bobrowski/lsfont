@@ -17,7 +17,7 @@ function inflate(input, output) {
 	var codes
 
 	for (;;) {
-		var v = get(3)
+		let v = get(3)
 		if (v & 0b010) {
 			if (v & 0b100)
 				throw 'Bad code'
@@ -27,7 +27,7 @@ function inflate(input, output) {
 				block_10()
 			else {
 				got(bit_count & 7)
-				var n = get(16)
+				let n = get(16)
 				get(16)
 				while (n--)
 					out(get(8))
@@ -61,11 +61,11 @@ function inflate(input, output) {
 	function gen_ht(l) {
 		var t = new Uint32Array(32768)
 		var c = 0
-		l.forEach((a,w) => {
+		l.forEach((a, w) => {
 			var s = 1 << w
-			a.forEach(v => {
-				var i = c
-				var x = v>>4 & 15
+			for (let v of a) {
+				let i = c
+				let x = v>>4 & 15
 				v |= w
 				if (!x || x + w > 15) {
 					do {
@@ -74,31 +74,34 @@ function inflate(input, output) {
 					} while (i < 32768)
 				} else {
 					v = v&~255 | w+x
-					var a = 0
-					var m = (1 << 8+x)-1
+					let a = 0
+					let m = (1 << 8+x) - 1
 					do {
 						t[i] = v + a
 						a = a+256 & m
 						i += s
 					} while (i < 32768)
 				}
-				c = rev_add(c, s>>1)
-			})
+				c = rev_add(c, s >> 1)
+			}
 		})
 
 		if (typeof global == 'object' && global.debug) {
-			for (var v=0; v<32768; v++) {
-				var w0 = t[v] & 15
-				var n = 1
-				var c = t[v & (1 << n)-1]
-				if (!c) continue
-				var w = c & 15
-				if (!w) throw `w=0`
+			for (let v = 0; v < 32768; v++) {
+				let w0 = t[v] & 15
+				let n = 1
+				let c = t[v & (1 << n)-1]
+				if (!c)
+					continue
+				let w = c & 15
+				if (!w)
+					throw `w=0`
 				while (n < w) {
 					n = w
 					c = t[v & (1 << n)-1]
 					w = c & 15
-					if (!w) throw `w=0`
+					if (!w)
+						throw `w=0`
 				}
 				if (w < w0)
 					throw `Got width ${w} < ${w0}`
@@ -109,7 +112,7 @@ function inflate(input, output) {
 
 		function rev_add(a, b) {
 			for (;;) {
-				var c = a & b;
+				let c = a & b
 				a ^= b
 				if (!c)
 					return a
@@ -156,13 +159,13 @@ function inflate(input, output) {
 
 	function gen_codes() {
 		var a = []
-		for (var i=0; i<256; i++)
-			a.push(i<<8)
+		for (let i = 0; i < 256; i++)
+			a.push(i << 8)
 		a.push(0x1000000) // the end
 		fill(0x1000300, 4, 6)
 		a.push(0x1010200, 0x1000000, 0x1000000)
 		fill(0x100, 2, 14)
-		a.push(0,0)
+		a.push(0, 0)
 		codes = a
 
 		function fill(v, rr, n) {
@@ -182,18 +185,18 @@ function inflate(input, output) {
 
 	function decode(ht0, ht1) {
 		for (;;) {
-			var v = ht_get(ht0)
+			let v = ht_get(ht0)
 			if (v < 256)
 				out(v)
 			else {
 				v &= 0xFFFF
 				if (!v)
 					break
-				var l = v
+				let l = v
 				v = ht_get(ht1)
 				if (!v && typeof global == 'object' && global.debug)
 					throw 'Bad data'
-				var i = hist_pos-v & 32767
+				let i = hist_pos-v & 32767
 				do {
 					out(hist[i])
 					i = i+1 & 32767
@@ -213,7 +216,7 @@ function inflate(input, output) {
 
 		function gen(s, e, a) {
 			a = a || []
-			for (var i=s; i<=e; i++)
+			for (let i = s; i <= e; i++)
 				a.push(codes[i])
 			return a
 		}
@@ -226,6 +229,7 @@ function inflate(input, output) {
 		var hclen = v>>10
 		var l = []
 		var n = hclen + 4
+		var i
 
 		if (n) do {
 			v = get(3)
@@ -243,12 +247,12 @@ function inflate(input, output) {
 		]
 
 		var a = []
-		for (var i=0; i<l.length; i++)
+		for (i = 0; i < l.length; i++)
 			a[hhr[i]] = l[i]
 
 		var l = []
-		for (i=0; i<a.length; i++) {
-			var v = a[i]
+		for (i = 0; i < a.length; i++) {
+			let v = a[i]
 			if (v)
 				(l[v] || (l[v] = [])).push(hhc[i])
 		}
@@ -261,18 +265,18 @@ function inflate(input, output) {
 		if (!codes)
 			gen_codes()
 
-		var pv, l0
+		var pv, l0, k
 loop:
 		for (;;) {
-			var v = ht_get(ht)
-			var k = 1
+			let v = ht_get(ht)
+			k = 1
 			if (v >= 0x100) {
 				k = v & 0xFF
 				v = v < 0x200 ? pv : 0
 			}
 			pv = v
 
-			var a = v ? l[v] || (l[v] = []) : undefined
+			let a = v ? l[v] || (l[v] = []) : undefined
 			while (k >= n) {
 				k -= n
 				if (a) do
@@ -297,7 +301,8 @@ loop:
 			} else
 				i += k
 		}
-		if (k) throw "Bad Huffman data"
+		if (k)
+			throw "Bad Huffman data"
 
 		decode(
 			gen_ht(l0),

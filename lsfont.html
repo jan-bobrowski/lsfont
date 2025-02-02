@@ -4,43 +4,62 @@
 <meta name=viewport content="width=746">
 <link rel=source href=https://github.com/jan-bobrowski/lsfont>
 <style>
-html {height:100%}
-body {position:relative; min-height:100%; margin:0; background:#F5F5F5; color:#111; font-family:sans-serif}
-main {padding:1%}
-main>* {max-width:620px; margin:1em auto}
-footer {position:absolute; overflow:hidden; bottom:0; left:0; right:0; height:15px; padding:0 16px; font-size:9px; text-align:right; color:#777}
-h1, h2 {font-size:1.5em; font-weight:600; text-align:center}
-a {text-decoration:none; color:inherit}
-a[href]:hover {text-decoration:underline}
-#in {height:7px; min-height:7px; max-height:7px; padding:1px; position:relative; background:#131619; color:#39e; border-bottom:1px solid #FFF}
-#in>div {width:640px; margin:2em auto}
-input {font:inherit; padding:2px 6px; margin:0; border:.9px solid currentcolor; background:none;
- color:inherit; outline-color:currentcolor; max-width:100%; box-sizing:border-box}
-#x, body.ni #in {cursor:pointer}
-body:not(.ni) #in {height:auto; max-height:90%}
-body.ni #in>:not(#x) {display:none}
-#x {position:absolute; bottom:-9px; right:0; font:16px/8px sans-serif; padding:0 16px 0 0; color:#3B2F27; text-shadow:#FFF 1px 1px}
-body.in #x:before{content:'\25B4\25B4\25B4'}
-body.ni #x:before{content:'\25BE\25BE\25BE'}
-#t {table-layout:fixed; border-collapse:collapse; max-width:none; font-size:16px; cursor:default}
-tr.b {border-bottom:1px solid #888}
-td {border:.9px solid #888; width:40px; height:40px; max-width:64px; text-align:center; vertical-align:middle}
-td.c {background:#FFF; font:30px thefont,monospace; box-shadow:0 0 1px rgba(0,0,0,0)}
-td.c:hover {position:relative; transform:scale(2); color:#000; box-shadow:1px 7px 15px rgba(0,0,0,0.3); transition:all 40ms 40ms}
-th {font:10px sans-serif; padding:8px}
-dl {line-height:1.1em; font-size:90%}
-dt {display:compact; color:#444; padding-right:1ex}
-dd {margin:0 0 3px 9em; white-space:pre-wrap}
-.err {color:#E00; text-align:center}
+html { height: 100% }
+body {
+ position: relative; min-height: 100%; margin: 0; background: #F5F5F5; color: #111;
+ accent-color: #a4e; font-family: sans-serif
+}
+form { display: inline }
+main { padding: 1% }
+main>* { max-width: 620px; margin: 1em auto }
+footer {
+ position: absolute; overflow: hidden; bottom: 0; left: 0; right: 0; height: 15px;
+ padding: 0 16px; font-size: 9px; text-align: right; color: #777
+}
+h1, h2 { font-size: 1.5em; font-weight: 600; text-align: center }
+a { text-decoration: none; color: inherit }
+a[href]:hover { text-decoration: underline }
+#in {
+ height: 7px; min-height: 7px; max-height: 7px; padding: 1px; position: relative;
+ background: #131619; color: #a4e; border-bottom: 1px solid #FFF
+}
+#in>div { width: 640px; margin: 2em auto }
+input {
+ font: inherit; padding: 2px 6px; margin: 0; border: .9px solid currentcolor; background: none;
+ color: inherit; outline-color: currentcolor; max-width: 100%; box-sizing: border-box
+}
+#x, body.ni #in { cursor: pointer }
+body:not(.ni) #in { height: auto; max-height: 90% }
+body.ni #in>:not(#x) { display: none }
+#x {
+ position: absolute; bottom: -9px; right: 0; font: 16px/8px sans-serif; padding: 0 16px 0 0;
+ color: #3B2F27; text-shadow: #FFF 1px 1px
+}
+body.in #x::before{ content: '\25B4\25B4\25B4' }
+body.ni #x::before{ content: '\25BE\25BE\25BE' }
+#t { table-layout: fixed; border-collapse: collapse; max-width: none; font-size: 16px; cursor: default }
+tr.b { border-bottom: 1px solid #888 }
+td {
+ border: .9px solid #888; width: 40px; height: 40px; max-width: 64px; text-align: center; vertical-align: middle
+}
+td.c { background: #FFF; font: 30px thefont, monospace; box-shadow: 0 0 1px #0000 }
+td.c:hover {
+ position: relative; transform: scale(2); color: #000; box-shadow: 1px 7px 15px #0005; transition: all 40ms 40ms
+}
+th { font: 10px sans-serif; padding: 8px }
+dl { line-height: 1.1em; font-size: 90% }
+dt { display: compact; color: #444; padding-right: 1ex }
+dd { margin: 0 0 3px 9em; white-space: pre-wrap }
+.err { color: #E00; text-align: center }
 
 @media print {
- body {background:none;padding:0;border:0;min-height:0}
- body,dt,footer {color:#000}
- tbody {border-top:1px solid #000}
- td {border:.5px solid #000;color:#000}
- th {padding-left:0}
- #in {display:none!important}
- footer {position:static}
+ body { background: none; padding: 0; border: 0; min-height: 0 }
+ body, dt, footer { color: #000 }
+ tbody { border-top: 1px solid #000 }
+ td { border: .5px solid #000; color: #000 }
+ th { padding-left: 0 }
+ #in { display: none !important }
+ footer { position: static }
 }
 </style>
 <style></style>
@@ -93,11 +112,27 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 		body = get('body')
 		main = get('main')
 
-		get('form').onsubmit = function(z) { // uses this
-			z.preventDefault()
-			var url = this[0].value
-			if (url)
-				changed({ url }, 1)
+		if (window.queryLocalFonts) {
+			let e = get('#loc input')
+			e.parentNode.hidden = false
+			e.onfocus = z => {
+				e.onfocus = null
+				e.disabled = true
+				queryLocalFonts().then(fonts => {
+					local_fonts = fonts
+					var dl = get('#fonts')
+					for (let font of fonts) {
+						let option = element('option')
+						option.textContent = font.fullName
+						dl.append(option)
+					}
+					if (fonts[0]) {
+						e.disabled = false
+						e.focus()
+					} else
+						e.placeholder = 'Denied'
+				})
+			}
 		}
 
 		get('#file').onchange = function() { // uses this
@@ -105,6 +140,7 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 			if (f && (f = f[0])) {
 				this.value = ''
 				changed({ file: f }, 1)
+				reset_forms()
 			}
 		}
 
@@ -116,8 +152,10 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 	}
 
 	onclick = z => {
-		var e = z.target
-		var id = e.id || e.parentNode.id
+		var e = z.target.closest('[id]')
+		if (!e)
+			return
+		var { id } = e
 		if (id == 'open')
 			open()
 		else if (id == 'x')
@@ -127,16 +165,47 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 	}
 
 	onkeydown = z => {
-		if (z.keyCode == 0x4F && z.ctrlKey) {
+		const KEY_O = 79
+		const KEY_ESC = 27
+		if (z.keyCode == KEY_O && z.ctrlKey) {
 			z.preventDefault()
 			open()
 		}
-		if (z.keyCode == 27)
+		if (z.keyCode == KEY_ESC)
 			show()
+	}
+
+	var local_fonts
+
+	onsubmit = z => {
+		z.preventDefault()
+		var form = z.target
+		reset_forms(form)
+		var { value } = form[0]
+		if (!value)
+			return
+		var action = {
+			url() {
+				changed({ url: value }, 1)
+			},
+			loc() {
+				value = value.toLowerCase()
+				let font = local_fonts?.find(font => font.fullName.toLowerCase() == value)
+				if (font)
+					font.blob().then(blob => changed({ file: blob }, 1))
+			}
+		}[form.id]
+		action?.()
 	}
 
 	function open() {
 		get('#file').click()
+	}
+
+	function reset_forms(except) {
+		for (let form of document.querySelectorAll('form'))
+			if (form != except)
+				form.reset()
 	}
 
 	ondragenter = ondragover = ondrop = z => {
@@ -144,8 +213,10 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 		var dt, v
 		if (t == 'drop') {
 			dt = z.dataTransfer
-			if (v = dt.files[0])
+			if (v = dt.files[0]) {
 				new_font({ file: v }, 1)
+				reset_forms()
+			}
 			else if (v = dt.getData('URL'))
 				location.hash = v
 		}
@@ -305,7 +376,7 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 
 		var [dc, dm] = [created, modified].map(t => t && t.toISOString().slice(0, 10))
 		var s = font.type
-		v = dm && dm != dc
+		var v = dm && dm != dc
 		n = font.num_glyphs
 		s += `, ${n} glyph` + (n - 1 ? 's' : '')
 		 + `, ${file.length} bytes`
@@ -367,8 +438,9 @@ dd {margin:0 0 3px 9em; white-space:pre-wrap}
 <div id=in><div>
 <h1>List glyphs in font</h1>
 <p>List character map of a font. Accepts TrueType, OpenType and WOFF fonts.
-<form><input type=url id=url size=88 accesskey=u placeholder='URL of the font file'></form>
-<p><button id=open accesskey=o><b>Open local font...</b> Ctrl-O</button> or drop here
+<form id=url><input type=url size=88 accesskey=u placeholder="URL of the font file"></form>
+<p><form id=loc><label hidden>Show installed font <input list=fonts placeholder="Name"><datalist id=fonts></datalist></label></form> or
+<button id=open accesskey=o><b>Open font file...</b> Ctrl-O</button> or drop here
 </div>
 <a id=x></a>
 </div>

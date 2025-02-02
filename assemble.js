@@ -1,5 +1,12 @@
 /* Assemble HTML and JS with compression © 2021 Jan Bobrowski */
 
+const { log: diag, warn, assert } = console
+
+function error(message) {
+	warn(message)
+	process.exit(1)
+}
+
 fs = require('fs')
 clean_css = require('clean-css')
 uglify_js = require('uglify-js')
@@ -10,15 +17,15 @@ if (!args[0])
 
 html = fs.readFileSync(args[0], 'utf-8')
 
-html = html.replace(/<style>([\S\s]*?)<\/style>/g, (m0,s) => {
+html = html.replace(/<style>([\S\s]*?)<\/style>/g, (m0, s) => {
 	var ccss = new clean_css({
 		level: 2,
 		removeEmpty: true
 	}).minify(s)
 	if (ccss.errors.length)
-		console.error(ccss.errors)
+		error(ccss.errors)
 	if (ccss.warnings.length)
-		console.warn(ccss.warnings)
+		warn(ccss.warnings)
 	s = ccss.styles
 	if (s)
 		s = `\n${s}\n`
@@ -26,12 +33,12 @@ html = html.replace(/<style>([\S\s]*?)<\/style>/g, (m0,s) => {
 })
 
 scripts = []
-html = html.replace(/<script src=([^>]+)><\/script>\n?/g, (m0,src) => {
+html = html.replace(/<script src=([^>]+)><\/script>\n?/g, (m0, src) => {
 	scripts.push(src)
 	return ''
 })
 
-html = html.replace(/<script>([\S\s]*?)<\/script>/g, (m0,js) => {
+html = html.replace(/<script>([\S\s]*?)<\/script>/g, (m0, js) => {
 	var m = js.match(/\s*\/\* !INCLUDE \*\/\n?/)
 	if (m) {
 		js = js.substr(0, m.index)
@@ -54,10 +61,10 @@ html = html.replace(/<script>([\S\s]*?)<\/script>/g, (m0,js) => {
 	if (warnings) {
 		warnings = warnings.join('\n')
 		if (warnings)
-			console.log(warnings)
+			warn(warnings)
 	}
 	if (ujs.error)
-		throw ujs.error
+		error(ujs.error)
 
 	return `<script>\n${ujs.code.replace(/;$/, '')}\n</script>`
 })
