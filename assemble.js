@@ -73,4 +73,3 @@ if (args[1])
 	fs.writeFileSync(args[1], html)
 else
 	process.stdout.write(html)
-

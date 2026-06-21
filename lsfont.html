@@ -64,7 +64,6 @@ dd { margin: 0 0 3px 9em; white-space: pre-wrap }
 </style>
 <style></style>
 <body>
-<script src=inflate.m.js></script>
 <script src=font-info.m.js></script>
 <script>
 ! ((document, undefined) => {
@@ -232,27 +231,33 @@ dd { margin: 0 0 3px 9em; white-space: pre-wrap }
 		out.textContent = 'Loading' + (o.url ? ' ' + o.url : '') + '...'
 		out.innerHTML += '<div id=pb style=font-size:16px>'
 
-		req(o, (o, b, t) => {
-			if (!b)
+		req(o, (o, bytes, t) => {
+			if (!bytes)
 				return error(t)
 
-			try {
-				var file = new Uint8Array(b)
-				var font = font_info(file, {
-					head: true,
-					maxp: true,
-					cmap: true,
-					name: true,
-					GPOS: false,
-					GSUB: false,
-					hhea: true,
-					'OS/2': false
-				})
-			} catch (x) {
-				out.innerHTML = ''
-				return error(x)
-			}
+			var { url } = o
+			if (!url)
+				url = URL.createObjectURL(o.file)
 
+			bytes = new Uint8Array(bytes)
+			font_info(bytes, {
+				head: true,
+				maxp: true,
+				cmap: true,
+				name: true,
+				GPOS: false,
+				GSUB: false,
+				hhea: true,
+				'OS/2': false
+			})
+			.then(info => show_font(info, bytes, url))
+			.catch (x => {
+				out.innerHTML = ''
+				error(x)
+			})
+		})
+
+		function show_font(font, file, url) {
 			out = main
 
 			if (document.fonts)
@@ -262,15 +267,12 @@ dd { margin: 0 0 3px 9em; white-space: pre-wrap }
 
 			var css = document.styleSheets[1]
 			var r = css.cssRules[0]
-			var u = o.url
-			if (!u)
-				u = URL.createObjectURL(o.file)
 			if (r)
 				css.deleteRule(r)
-			css.insertRule(`@font-face {font-family:thefont;src:url("${u}")}`, css.cssRules.length)
+			css.insertRule(`@font-face {font-family:thefont;src:url("${url}")}`, css.cssRules.length)
 
 			list_font(font, file)
-		})
+		}
 
 		function error(t, before) {
 			var e = element('p')
@@ -406,10 +408,7 @@ dd { margin: 0 0 3px 9em; white-space: pre-wrap }
 			else
 				a(g, r.response)
 		}
-		r.onerror = () => {
-			var v
-			a(g, v, r.statusText || 'Error (CORS?)')
-		}
+		r.onerror = () => a(g, undefined, r.statusText || 'Error (CORS?)')
 		var pb = get('#pb')
 		if (pb) !(r.onprogress = z => {
 			var c0 = '\u25CB'

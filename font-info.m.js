@@ -2,7 +2,6 @@
 
 if (typeof exports == 'object') {
 	exports.font_info = font_info
-	inflate = require('./inflate.m').inflate
 }
 
 /*
@@ -14,7 +13,7 @@ if (typeof exports == 'object') {
  eg. tables = { head: true, maxp: true, cmap: true, name: true, GPOS: false, GSUB: false }
 */
 
-function font_info(body, tables) {
+async function font_info(body, tables) {
 	const g16 = (b,o) => b[o]<<8 | b[o + 1]
 	const g16s = (b,o) => (g16(b, o) ^ 32768) - 32768
 	const g32 = (b,o) => (g16(b, o)<<16 | g16(b, o + 2)) >>> 0
@@ -49,23 +48,16 @@ function font_info(body, tables) {
 			let data = body.slice(ofs, ofs + size)
 			if (o_len) {
 				let len = g32(body, pos + o_len)
-				if (size < len) {
-					let zdata = data
-					data = new Uint8Array(len)
-					let i = 2, j = 0
-					inflate(
-						_ => zdata[i++],
-						v => data[j++] = v
-					)
-				}
+				if (size < len)
+					data = await inflate(data)
 			}
 			tables[id] = data
 		}
 		pos += step
 	} while (--count)
 
-	for (var v in tables) {
-		var tab = tables[v]
+	for (let v in tables) {
+		let tab = tables[v]
 		if (tab && !tab.length)
 			throw `No "${v}" table`
 	}
@@ -158,7 +150,7 @@ function font_info(body, tables) {
 			let last = g16(tab, pos)
 			let first = g16(tab, pos + o_start)
 			let delta = g16(tab, pos + o_delta)
-			let ofs =g16(tab, pos + o_ofs)
+			let ofs = g16(tab, pos + o_ofs)
 			if (!ofs) {
 				let i = -delta & 0xFFFF
 				if (i >= first && i <= last) {
@@ -252,4 +244,11 @@ function font_info(body, tables) {
 		font.features = Object.keys(features)
 
 	return font
+}
+
+async function inflate(data) {
+	var blob = new Blob([data])
+	var z = new DecompressionStream('deflate')
+	var d = blob.stream().pipeThrough(z)
+	return await new Response(d).bytes()
 }
