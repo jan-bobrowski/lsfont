@@ -24,42 +24,106 @@ async function font_info(body, tables) {
 	var v = gstr(body, 0, 4)
 	var type
 	if (v == '\0\x01\0\0' || v == 'true' || v == 'typ1' || v == 'OTTO') {
-		dir = [4, 12,16, 8,12]
+		dir = [4, 12, 16, 8, 12]
 		type = 'TTF'
 	} else if (v == 'wOFF') {
 		type = 'WOFF'
-		dir = [12, 44,20, 4,8,12]
-	} else if (v == 'wOF2')
-		throw 'WOFF2 is not supported'
-	else
+		dir = [12, 44, 20, 4, 8, 12]
+	} else if (v == 'wOF2') {
+		type = 'WOFF2'
+		dir = [12, 48]
+	} else
 		throw 'Not a font'
 
 	var [count, pos, step, o_ofs, o_size, o_len] = dir
 	count = g16(body, count)
 	if (!count)
 		throw 'Bad font'
-	do {
-		let id = gstr(body, pos, 4)
-		if (id in tables) {
-			let ofs = g32(body, pos + o_ofs)
-			let size = g32(body, pos + o_size)
-			if (ofs + size > body.length)
-				return 'Font truncated'
-			let data = body.slice(ofs, ofs + size)
-			if (o_len) {
-				let len = g32(body, pos + o_len)
-				if (size < len)
-					data = await inflate(data)
+	if (step) {
+		do {
+			let tag = gstr(body, pos, 4)
+			if (tag in tables) {
+				let ofs = g32(body, pos + o_ofs)
+				let size = g32(body, pos + o_size)
+				if (ofs + size > body.length)
+					return 'Font truncated'
+				let data = body.slice(ofs, ofs + size)
+				if (o_len) {
+					let len = g32(body, pos + o_len)
+					if (size < len)
+						data = await decompress('deflate', data)
+				}
+				tables[tag] = data
 			}
-			tables[id] = data
-		}
-		pos += step
-	} while (--count)
+			pos += step
+		} while (--count)
 
-	for (let v in tables) {
-		let tab = tables[v]
-		if (tab && !tab.length)
-			throw `No "${v}" table`
+		for (let tag in tables) {
+			let tab = tables[tag]
+			if (tab && !tab.length)
+				throw `No "${tag}" table`
+		}
+	} else { // WOFF2
+		const known_tags =
+			'cmapheadhheahmtxmaxpnameOS/2post' +
+			'cvt fpgmglyflocaprepCFF VORGEBDT' +
+			'EBLCgasphdmxkernLTSHPCLTVDMXvhea' +
+			'vmtxBASEGDEFGPOSGSUBEBSCJSTFMATH' +
+			'CBDTCBLCCOLRCPALSVG sbixacntavar' +
+			'bdatblocbslncvarfdscfeatfmtxfvar' +
+			'gvarhstyjustlcarmortmorxopbdprop' +
+			'trakZapfSilfGlatGlocFeatSill'
+		let flavor = gstr(body, 4, 4)
+		if (flavor == 'ttcf')
+			throw `Collections not supported`
+		let data_pos = 0
+		let tab_pos = {}
+		do {
+			let flags = body[pos++]
+			let i = flags & 63
+			let tag
+			if (i < 63) {
+				i *= 4
+				tag = known_tags.slice(i, i + 4)
+			} else {
+				tag = gstr(body, pos, 4)
+				pos += 4
+			}
+			// We're ignoring transformations for now!
+			let transform = flags >> 6
+			if (tag == 'glyf' || tag == 'loca')
+				transform = !transform
+			let olen = read_UIntBase128()
+			let tlen = transform ? read_UIntBase128() : olen
+			tab_pos[tag] = [data_pos, data_pos + tlen]
+			data_pos += tlen
+		} while (--count)
+
+		let zsize = g32(body, 20)
+		let data = body.slice(pos, pos + zsize)
+		data = await decompress('brotli', data)
+
+		for (let tag in tables) {
+			let range = tab_pos[tag]
+			if (range)
+				tables[tag] = data.slice(...range)
+			else if (tables[tag])
+				throw `No "${tag}" table`
+		}
+
+		function read_UIntBase128() {
+			let a = body[pos++]
+			if (~a & 0x80)
+				return a
+			a &= 0x7f
+			if (a) do {
+				let v = body[pos++]
+				a = a<<7 | v & 0x7f
+				if (~v & 0x80)
+					return a
+			} while (a < 0x02000000)
+			throw 'UIntBase128'
+		}
 	}
 
 	var font = { type }
@@ -246,9 +310,9 @@ async function font_info(body, tables) {
 	return font
 }
 
-async function inflate(data) {
+async function decompress(method, data) {
 	var blob = new Blob([data])
-	var z = new DecompressionStream('deflate')
+	var z = new DecompressionStream(method)
 	var d = blob.stream().pipeThrough(z)
 	return await new Response(d).bytes()
 }
